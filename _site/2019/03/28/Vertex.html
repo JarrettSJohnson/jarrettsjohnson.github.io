@@ -1,0 +1,246 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on https://github.com/jonrohan -->
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  
+  <link rel="stylesheet" href="/assets/css/style.css?v=">
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+  <script src="/assets/js/script.js"></script>
+
+<!-- Begin Jekyll SEO tag v2.6.0 -->
+<title>Modern C++ shinanegans with Vertices in OpenGL!</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="Modern C++ shinanegans with Vertices in OpenGL!" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Recommended Modern C++ topics to review before reading: auto return types, Variadic templates, constexpr (and extended) functions, using alias, type_traits, inline static variables…" />
+<meta property="og:description" content="Recommended Modern C++ topics to review before reading: auto return types, Variadic templates, constexpr (and extended) functions, using alias, type_traits, inline static variables…" />
+<link rel="canonical" href="http://localhost:4000/2019/03/28/Vertex.html" />
+<meta property="og:url" content="http://localhost:4000/2019/03/28/Vertex.html" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-03-28T00:00:00-04:00" />
+<script type="application/ld+json">
+{"@type":"BlogPosting","url":"http://localhost:4000/2019/03/28/Vertex.html","headline":"Modern C++ shinanegans with Vertices in OpenGL!","dateModified":"2019-03-28T00:00:00-04:00","datePublished":"2019-03-28T00:00:00-04:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2019/03/28/Vertex.html"},"description":"Recommended Modern C++ topics to review before reading: auto return types, Variadic templates, constexpr (and extended) functions, using alias, type_traits, inline static variables…","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title"></h1>
+    </header>
+    <div id="container">
+      <p class="tagline"></p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          
+          <a href="" class="code">View  on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <p>Recommended Modern C++ topics to review before reading: <code class="highlighter-rouge">auto</code> return types, Variadic templates, <code class="highlighter-rouge">constexpr</code> (and extended) functions, <code class="highlighter-rouge">using</code> alias, <code class="highlighter-rouge">type_traits</code>, inline static variables…</p>
+
+<p>For those who are new to graphics programming, understanding the concept of an OpenGL “Vertex” might take longer than learning it from 10th Grade Geometry class. Ask your “Average Joe” what the definition of a “Vertex” and likely you’ll get a response along the lines of “Some pointy spot on a shape”. While this is not at all wrong, in a graphics programming context, there’s much more to that than the relative positions within a geometry.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="n">glVertexAttribPointer</span><span class="p">(</span>
+    <span class="n">GLuint</span> <span class="n">index</span><span class="p">,</span>
+	<span class="n">GLint</span> <span class="n">size</span><span class="p">,</span>
+	<span class="n">GLenum</span> <span class="n">type</span><span class="p">,</span>
+	<span class="n">GLboolean</span> <span class="n">normalized</span><span class="p">,</span>
+	<span class="n">GLsizei</span> <span class="n">stride</span><span class="p">,</span>
+	<span class="k">const</span> <span class="n">GLvoid</span> <span class="o">*</span> <span class="n">pointer</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Let’s idealize the concept of a Vertex Attribute using C++. For now, we’ll naively just put each parameter into a struct.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="n">VertexAttribute</span> <span class="p">{</span>
+  <span class="n">GLuint</span> <span class="n">index</span><span class="p">;</span>
+  <span class="n">GLuint</span> <span class="n">size</span><span class="p">;</span>
+  <span class="n">GLint</span> <span class="n">count</span><span class="p">;</span>
+  <span class="n">GLenum</span> <span class="n">type</span><span class="p">;</span>
+  <span class="n">GLbyte</span> <span class="n">normalized</span><span class="p">;</span>
+  <span class="n">GLsizei</span> <span class="n">strideSize</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">GLvoid</span> <span class="o">*</span> <span class="n">offset</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p>Not a bad start; however, there are some things that would be slightly awkward to implement:</p>
+<ol>
+  <li><code class="highlighter-rouge">index</code> A specific vertex attribute should be agnostic of other surrounding attributes. If this is the case, <code class="highlighter-rouge">index</code> should probably be assigned or managed by a foreign entity.</li>
+  <li>I’m more a fan of <code class="highlighter-rouge">count</code> than <code class="highlighter-rouge">size</code> here as we’re referring to a specific enumeration of components within the attribute and not how big or small (in terms of memory usage) the components are individually.</li>
+  <li>The ‘type’ parameter is pretty interesting. From a C++ perspective, one might want to make this into a template which could take the various GL types (GLfloat, GLint, etc…). We’ll just hold on to that idea for now.</li>
+  <li>Normalized is pretty straightforward. GL_TRUE vs GL_FALSE.</li>
+  <li>Similar to point number 1, each component should be blind to the existence of its surroundings. We’ll have something else handle this for us.</li>
+</ol>
+
+<p>The second iteration of this idea would look something along the lines of:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">GLType</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">VertexAttribute</span> <span class="p">{</span>
+  <span class="n">GLint</span> <span class="n">count</span><span class="p">;</span>
+  <span class="n">GLenum</span> <span class="n">type</span><span class="p">;</span>
+  <span class="n">GLuint</span> <span class="n">typeSize</span><span class="p">;</span>
+  <span class="n">GLbyte</span> <span class="n">normalized</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Much easier to manage and populate in my opinion. Naturally, the next thing to address is how these attributes are laid out in memory. We’ll refer to this structure as a <code class="highlighter-rouge">layout</code>. Or simply something like:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="n">VertexLayout</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">VertexAttribute</span><span class="o">&gt;</span> <span class="n">layout</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>except that we’re going to, again, make a few changes…Since we know a-prori what our layout should look like, there isn’t any reason why we can’t make this an array.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="n">NumComponents</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">VertexLayout</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">VertexAttribute</span><span class="p">,</span> <span class="n">NumComponents</span><span class="o">&gt;</span> <span class="n">layout</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>This is looking like something we can start to easily use. But here’s the kicker: We want to be more descriptive up-front of what these vertex attributes are. For example, assume we want a vertex layout that contains: 3D position, 3D normals, and textures. We have three attributes here but a total of eight components (x, y, z, nX, nY, nZ, u, and v). We can use the type sytem to alias what these attributes are for ease of mixing and matching different types of vertices.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">using</span> <span class="n">vPos3D</span> <span class="o">=</span> <span class="n">VertexComponent</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">vNor3D</span> <span class="o">=</span> <span class="n">VertexComponent</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">vTex</span> <span class="o">=</span> <span class="n">VertexComponent</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Using these aliases, we can more easily communicate the structure of the vertices without having to guess what <code class="highlighter-rouge">VertexLayout&lt;8&gt;</code> means. Something along the lines of <code class="highlighter-rouge">VertexLayout&lt;vPos3D, vNor3D, vTex&gt;</code> is much easier to identify, and the layout can be determined statically without much work.</p>
+
+<p>Let’s try to see what this would look like:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">VertexComponentTs</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">VertexLayout</span> <span class="p">{</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">VertexAttribute</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">...(</span><span class="n">VertexComponentTs</span><span class="p">)</span><span class="o">&gt;</span>
+      <span class="n">layout</span><span class="p">{</span><span class="n">getAttribute</span><span class="o">&lt;</span><span class="n">VertexComponentTs</span><span class="o">&gt;</span><span class="p">()...};</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p>Lovely. For all layouts of a given template instantiation, they should be identical, hence <code class="highlighter-rouge">static</code>. The constexpr here implies <code class="highlighter-rouge">inline</code> thus we are not required to have the defintion of <code class="highlighter-rouge">layout</code> in a .cpp file. Thank you C++17.</p>
+
+<p>To populate this array, we expand it from a <code class="highlighter-rouge">VertexAttribute</code> generator aptly named <code class="highlighter-rouge">getAttribute</code>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">VertexComponentT</span><span class="o">&gt;</span>
+<span class="k">constexpr</span> <span class="k">auto</span> <span class="n">getAttribute</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">value_type</span> <span class="o">=</span> <span class="k">typename</span> <span class="n">VertexComponentT</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
+  <span class="k">if</span> <span class="nf">constexpr</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">value_type</span><span class="p">,</span> <span class="n">GLfloat</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">VertexAttribute</span><span class="p">{</span><span class="n">VertexComponentT</span><span class="o">::</span><span class="n">size</span><span class="p">,</span>
+                           <span class="n">getGLTypeEnum</span><span class="o">&lt;</span><span class="n">VertexComponentT</span><span class="o">&gt;</span><span class="p">(),</span>
+                           <span class="k">sizeof</span><span class="p">(</span><span class="n">value_type</span><span class="p">),</span> <span class="n">GL_FALSE</span><span class="p">};</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">VertexAttribute</span><span class="p">{</span><span class="n">VertexComponentT</span><span class="o">::</span><span class="n">size</span><span class="p">,</span>
+                         <span class="n">getGLTypeEnum</span><span class="o">&lt;</span><span class="n">VertexComponentT</span><span class="o">&gt;</span><span class="p">(),</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">value_type</span><span class="p">),</span>
+                         <span class="n">GL_FALSE</span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The first line in the function body retrives the type of the VertexComponentGroup. For example, <code class="highlighter-rouge">vPos</code>, <code class="highlighter-rouge">vNor</code>, and <code class="highlighter-rouge">vTex</code> will all be GLfloat. If you wanted, you can make a VertexComponentGroup like <code class="highlighter-rouge">vPriority</code> which contains only <code class="highlighter-rouge">GLint</code>s that you can use for some ranking system for vertices, etc…Most of the time, I would wager that GLfloat would be used in most attributes. From here you can simply check the type against <code class="highlighter-rouge">GLfloat</code> and see whether or not if they’re the same type using metafunctions/type_traits like <code class="highlighter-rouge">std::is_same</code>. If we know the type of the attributes, we can simply take the size of that type and retrive the corresponding <code class="highlighter-rouge">GLenum</code>.</p>
+
+<p>And with that, we’re almost done. We just need to make that <code class="highlighter-rouge">VertexComponentGroup</code> struct and then add some nice API to <code class="highlighter-rouge">VertexLayout</code>.</p>
+
+<p>First, remember that we’d like to call <code class="highlighter-rouge">VertexComponentGroup</code> this way:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">using</span> <span class="n">vPos3D</span> <span class="o">=</span> <span class="n">VertexComponent</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Obviously, we need to construct a template for this class which accepts at least one template argument. The other argument will be the type argument named <code class="highlighter-rouge">value_type</code> that we used in <code class="highlighter-rouge">getAttribute</code>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="n">ComponentSize</span><span class="p">,</span> <span class="k">typename</span> <span class="n">ValueType</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">VertexComponentGroup</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">value_type</span> <span class="o">=</span> <span class="n">ValueType</span><span class="p">;</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">ComponentSize</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>OK. But earlier we didn’t specify the type? Correct. We did not. As said before, GLfloat is assumed to be our default type unless we’re doing something unique like <code class="highlighter-rouge">vPriority</code>.</p>
+
+<p>Final thing I want to add is actual API that you will use on the OpenGL interface. We’ll simply make this a template function which takes in <code class="highlighter-rouge">VertexComponentGroups</code> as arguments. We’ll call this Vertex.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">using</span> <span class="n">vPos3D</span> <span class="o">=</span> <span class="n">VertexComponentGroup</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">vNor3D</span> <span class="o">=</span> <span class="n">VertexComponentGroup</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">vTex</span> <span class="o">=</span> <span class="n">VertexComponentGroup</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">Vertex3D</span> <span class="o">=</span> <span class="n">Vertex</span><span class="o">&lt;</span><span class="n">vPos3D</span><span class="p">,</span> <span class="n">vNor3D</span><span class="p">,</span> <span class="n">vTex</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>I find the API to be clear. We have a type called <code class="highlighter-rouge">Vertex3D</code> which is composed of a 3D position, 3D normal, and a texture coordinates. Again, you can add, remove, mix this up with a lot of flexibility.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">VertexComponentTs</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">Vertex</span> <span class="p">{</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="n">totalComponentSize</span> <span class="o">=</span> <span class="p">(</span><span class="n">VertexComponentTs</span><span class="o">::</span><span class="n">size</span> <span class="o">+</span> <span class="p">...);</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">VertexLayout</span><span class="o">&lt;</span><span class="n">VertexComponentTs</span><span class="p">...</span><span class="o">&gt;</span> <span class="n">layout</span><span class="p">{};</span>
+  <span class="k">static</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="n">getLayout</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">layout</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p>Viola. The layout is ready for use for the VAO. One quick note about Visual Studio 2017: <code class="highlighter-rouge">VertexComponentsTs::size + ...)</code> wont work until Visual Studio 2019. We can provide quick workaround for that:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*
+ * Needed until Visual Studio 2019...
+ */</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">VertexComponentTs</span><span class="o">&gt;</span>
+<span class="k">constexpr</span> <span class="k">auto</span> <span class="n">getTotalComponentSize</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">VertexComponentTs</span><span class="o">::</span><span class="n">size</span> <span class="o">+</span> <span class="p">...);</span>
+<span class="p">}</span>
+
+<span class="c1">//...</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">VertexComponentTs</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="n">Vertex</span> <span class="p">{</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span> <span class="n">totalComponentSize</span> <span class="o">=</span> 
+  		<span class="n">getTotalComponentSize</span><span class="o">&lt;</span><span class="n">VertexComponentTs</span><span class="p">..</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="n">VertexLayout</span><span class="o">&lt;</span><span class="n">VertexComponentTs</span><span class="p">...</span><span class="o">&gt;</span> <span class="n">layout</span><span class="p">{};</span>
+  <span class="k">static</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="n">getLayout</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">layout</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">VBOish</span><span class="p">,</span> <span class="k">typename</span> <span class="n">VertexLayoutT</span><span class="o">&gt;</span>
+  <span class="kt">void</span> <span class="n">addBuffer</span><span class="p">(</span><span class="k">const</span> <span class="n">VBOish</span><span class="o">&amp;</span> <span class="n">vbo</span><span class="p">,</span> <span class="k">const</span> <span class="n">VertexLayoutT</span><span class="o">&amp;</span> <span class="n">layout</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">bind</span><span class="p">();</span>
+    <span class="n">vbo</span><span class="p">.</span><span class="n">bind</span><span class="p">();</span>
+    <span class="k">auto</span> <span class="n">offset</span><span class="p">{</span><span class="mi">0u</span><span class="p">};</span>
+    <span class="k">auto</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">layout</span><span class="p">.</span><span class="n">getStride</span><span class="p">();</span>
+    <span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="k">auto</span><span class="o">&amp;</span> <span class="n">layout_component</span> <span class="o">:</span> <span class="n">layout</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">glEnableVertexAttribArray</span><span class="p">(</span><span class="n">m_arraySize</span><span class="p">);</span>
+      <span class="n">glVertexAttribPointer</span><span class="p">(</span><span class="n">m_arraySize</span><span class="p">,</span> <span class="n">layout_component</span><span class="p">.</span><span class="n">count</span><span class="p">,</span>
+                            <span class="n">layout_component</span><span class="p">.</span><span class="n">type</span><span class="p">,</span> <span class="n">layout_component</span><span class="p">.</span><span class="n">normalized</span><span class="p">,</span>
+                            <span class="n">stride</span><span class="p">,</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">GLvoid</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">offset</span><span class="p">));</span>
+      <span class="n">offset</span> <span class="o">+=</span> <span class="n">layout_component</span><span class="p">.</span><span class="n">count</span> <span class="o">*</span> <span class="n">layout_component</span><span class="p">.</span><span class="n">typeSize</span><span class="p">;</span>
+      <span class="n">m_arraySize</span><span class="o">++</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">vbo</span><span class="p">.</span><span class="n">unbind</span><span class="p">();</span>
+    <span class="n">unbind</span><span class="p">();</span>
+  <span class="p">}</span>
+</code></pre></div></div>
+<p>We’ve taken care of the <code class="highlighter-rouge">index</code> and <code class="highlighter-rouge">offset</code> parameters that were introduced ealier in this post. We can simply pass in a VBO object and a Vertex::layout and we’ll just make the right calls to <code class="highlighter-rouge">glVertexAttribPointer</code>.</p>
+
+
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      
+
+       
+
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br>theme by <a href="https://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="" class="tar">tar</a><a href="" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+  
+</body>
+</html>
